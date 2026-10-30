@@ -48,6 +48,19 @@ class SceneReport:
     collectible: List[Detection] = field(default_factory=list)
     blocked: List[Detection] = field(default_factory=list)   # too close to life
 
+    # Command keywords in priority order (see DecisionEngine._decide_command).
+    COMMAND_KEYS = ("HOLD", "OBSERVE", "PRIORITY CLEANUP", "COLLECT",
+                    "PROCEED WITH CARE", "SCANNING", "CLEAR")
+
+    @property
+    def command_key(self) -> str:
+        """Plain keyword of robot_command (no emoji), e.g. "HOLD" — read-only
+        view used by simulation.py to drive the simulated robot."""
+        for key in self.COMMAND_KEYS:
+            if key in self.robot_command:
+                return key
+        return "SCANNING"
+
 
 # ── Decision engine ───────────────────────────────────────────────────────────
 

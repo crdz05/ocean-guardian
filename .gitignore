@@ -5,3 +5,4 @@ captures/
 capture_frame_*.jpg
 datasets/
 .venv/
+sim_screenshot_*.png

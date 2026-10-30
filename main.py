@@ -5,23 +5,22 @@
 ╚══════════════════════════════════════════════════════════════╝
 
 Entry point. Run this file to start the demo:
-    python main.py
+    python main.py                     → original camera mode (YOLO + OpenCV)
+    python main.py --sim               → pygame simulation + webcam in parallel
+    python main.py --sim --no-camera   → simulation only (F/T keys as "camera")
 
 Optional flags:
     --source 0          → webcam index (default: 0)
-    --source video.mp4  → video file instead of webcam
+    --source video.mp4  → video file instead of webcam (camera mode only)
     --model custom.pt   → swap in a custom-trained YOLO model
     --conf 0.4          → minimum confidence threshold (default: 0.4)
-    --no-gui            → print-only mode (no OpenCV window)
+    --no-gui            → print-only mode (no OpenCV window, camera mode only)
+    --duration 30       → auto-quit the simulation after N seconds
 """
 
 import argparse
 import sys
-import cv2
 
-from detector import OceanGuardianDetector
-from visualizer import Visualizer
-from decision_engine import DecisionEngine
 from config import Config
 
 
@@ -35,11 +34,19 @@ def parse_args():
                         help="Detection confidence threshold (0.0–1.0)")
     parser.add_argument("--no-gui", action="store_true",
                         help="Disable OpenCV window (terminal output only)")
+    parser.add_argument("--sim", action="store_true",
+                        help="Run the pygame simulation (with the webcam in parallel)")
+    parser.add_argument("--no-camera", action="store_true",
+                        help="With --sim: skip the webcam/YOLO thread (use F/T keys)")
+    parser.add_argument("--duration", type=float, default=None,
+                        help="With --sim: quit automatically after N seconds")
     return parser.parse_args()
 
 
 def open_source(source_arg: str):
     """Open webcam or video file. Returns cv2.VideoCapture."""
+    import cv2
+
     # Try to parse as integer (webcam index) first
     try:
         src = int(source_arg)
@@ -57,20 +64,35 @@ def open_source(source_arg: str):
     return cap
 
 
-def main():
-    args = parse_args()
-    cfg = Config()
+def run_simulation(args, cfg: Config):
+    try:
+        import simulation
+    except ImportError as exc:
+        print(f"[ERROR] Could not start the simulation: {exc}")
+        print("        Install pygame with:  pip install pygame-ce")
+        sys.exit(1)
 
-    # Allow CLI overrides of config defaults
-    if args.model:
-        cfg.MODEL_PATH = args.model
-    if args.conf is not None:
-        cfg.CONF_THRESHOLD = args.conf
+    if args.source.isdigit():
+        cfg.CAMERA_INDEX = int(args.source)
+    simulation.run(cfg, use_camera=not args.no_camera, duration=args.duration)
 
-    print(cfg.banner())
+
+def run_camera(args, cfg: Config):
+    import cv2
+
+    try:
+        from detector import OceanGuardianDetector
+        detector = OceanGuardianDetector(cfg)       # YOLO wrapper
+    except Exception as exc:   # ImportError, OSError (e.g. WinError 4551), ...
+        print(f"\n[ERROR] YOLO detector unavailable: {type(exc).__name__}: {exc}")
+        print("        torch / ultralytics could not be loaded on this machine.")
+        print("        Run the simulation instead:  python main.py --sim --no-camera")
+        sys.exit(1)
+
+    from visualizer import Visualizer
+    from decision_engine import DecisionEngine
 
     # ── Core components ────────────────────────────────────────
-    detector = OceanGuardianDetector(cfg)       # YOLO wrapper
     decision = DecisionEngine(cfg)              # robot decision logic
     viz = Visualizer(cfg)                       # OpenCV overlay renderer
 
@@ -119,6 +141,31 @@ def main():
 
     print("\n[INFO] Session ended.")
     decision.print_summary()
+
+
+def main():
+    # Box-drawing characters / emoji in logs: avoid UnicodeEncodeError on
+    # Windows consoles or when output is piped.
+    try:
+        sys.stdout.reconfigure(encoding="utf-8", errors="replace")
+    except (AttributeError, ValueError):
+        pass
+
+    args = parse_args()
+    cfg = Config()
+
+    # Allow CLI overrides of config defaults
+    if args.model:
+        cfg.MODEL_PATH = args.model
+    if args.conf is not None:
+        cfg.CONF_THRESHOLD = args.conf
+
+    print(cfg.banner())
+
+    if args.sim:
+        run_simulation(args, cfg)
+    else:
+        run_camera(args, cfg)
 
 
 if __name__ == "__main__":

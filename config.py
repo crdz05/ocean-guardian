@@ -69,6 +69,17 @@ class Config:
         "styrofoam", "rope", "glass_bottle", "tire", "metal_debris",
     ])
 
+    # Display aliases for COCO proxies. COCO has no "fish" class, so a fish in
+    # front of the webcam is usually detected as "bird" (or another animal).
+    # These proxies are shown as "fish" on screen; the original COCO class is
+    # kept in Detection.raw_label. Set to {} to show the raw COCO labels.
+    PROXY_DISPLAY_NAMES: Dict[str, str] = field(default_factory=lambda: {
+        name: "fish" for name in (
+            "bird", "cat", "dog", "horse", "sheep", "cow", "elephant",
+            "bear", "zebra", "giraffe",
+        )
+    })
+
     UNCERTAIN_LABELS: List[str] = field(default_factory=lambda: [
         # Ambiguous objects
         "rock", "seaweed", "driftwood", "shell", "person",
@@ -82,6 +93,21 @@ class Config:
 
     # How many trash items trigger "priority cleanup zone"
     PRIORITY_ZONE_THRESHOLD: int = 3
+
+    # ── Simulation demo (simulation.py) ───────────────────────────────────────
+    # Seconds the robot waits in HOLD before re-checking a marine-life conflict.
+    SAFETY_WAIT_SECONDS: float = 3.0
+    # Safety radius (sim pixels) around the robot and around each trash item.
+    SIM_SAFETY_RADIUS: int = 90
+    SIM_WIDTH: int = 1280
+    SIM_HEIGHT: int = 720
+    SIM_FPS: int = 60
+    SIM_ROBOT_SPEED: float = 120.0     # px / s
+    SIM_ANIMAL_SPEED: float = 28.0     # px / s (animals drift slowly)
+    SIM_MAX_TRASH: int = 8
+    SIM_MAX_ANIMALS: int = 5
+    SIM_COLLECT_SECONDS: float = 0.8   # time spent picking up one item
+    CAMERA_INDEX: int = 0
 
     # ── Logging ───────────────────────────────────────────────────────────────
     LOG_EVERY_N_FRAMES: int = 30   # print status to terminal every N frames

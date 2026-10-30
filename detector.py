@@ -18,10 +18,12 @@ from dataclasses import dataclass
 from typing import List, Optional, Tuple
 import numpy as np
 
-# Ultralytics YOLOv8 — install with: pip install ultralytics
-from ultralytics import YOLO
-
 from config import Config
+
+# Ultralytics YOLOv8 (install with: pip install ultralytics) is imported lazily
+# inside OceanGuardianDetector.__init__. That keeps Detection importable (and
+# therefore decision_engine.py and simulation.py usable) on machines where
+# torch cannot load, e.g. Windows "WinError 4551 Application Control policy".
 
 
 # ── Data model ───────────────────────────────────────────────────────────────
@@ -35,6 +37,8 @@ class Detection:
     bbox: Tuple[int, int, int, int]  # (x1, y1, x2, y2) in pixels
     risk_score: float             # 0.0 = safe, 1.0 = must collect
     action: str                   # recommended robot action string
+    raw_label: str = ""           # model's own class name when label is a
+                                  # display alias (e.g. "bird" shown as "fish")
 
     @property
     def center(self) -> Tuple[int, int]:
@@ -60,6 +64,7 @@ class OceanGuardianDetector:
 
     def __init__(self, cfg: Config):
         self.cfg = cfg
+        from ultralytics import YOLO   # may raise if torch is blocked
         print(f"[INFO] Loading model: {cfg.MODEL_PATH}")
         self.model = YOLO(cfg.MODEL_PATH)
         # Build fast lookup sets from config
@@ -98,13 +103,19 @@ class OceanGuardianDetector:
                 risk       = self._risk_score(category, conf)
                 action     = self._recommended_action(category, conf)
 
+                # Show COCO marine proxies under their alias (e.g. "fish")
+                display = label
+                if category == "marine":
+                    display = self.cfg.PROXY_DISPLAY_NAMES.get(label.lower(), label)
+
                 detections.append(Detection(
-                    label=label,
+                    label=display,
                     category=category,
                     confidence=conf,
                     bbox=(x1, y1, x2, y2),
                     risk_score=risk,
                     action=action,
+                    raw_label=label,
                 ))
 
         detections.sort(key=lambda d: d.confidence, reverse=True)

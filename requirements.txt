@@ -2,3 +2,6 @@
 ultralytics>=8.0.0
 opencv-python>=4.8.0
 numpy>=1.24.0
+# Simulation demo (python main.py --sim). pygame-ce is a drop-in fork of
+# pygame (same `import pygame`) with wheels for new Python versions (3.14+).
+pygame-ce>=2.4.0
