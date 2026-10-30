@@ -1,0 +1,43 @@
+# datasets/data.yaml
+# YOLOv8 dataset configuration for Ocean Guardian custom training.
+#
+# To train:
+#   yolo train data=datasets/data.yaml model=yolov8n.pt epochs=100 imgsz=640
+#
+# Directory structure expected:
+#   datasets/
+#     images/train/*.jpg
+#     images/val/*.jpg
+#     labels/train/*.txt     ← YOLO format: class_id cx cy w h (normalized)
+#     labels/val/*.txt
+
+path: ./datasets          # root dataset directory
+train: images/train
+val:   images/val
+
+# Number of classes
+nc: 15
+
+# Class names — must match the order of your annotation labels
+names:
+  # ── Marine Life (classes 0–11) — AVOID ─────────────────────────────────
+  0:  fish
+  1:  jellyfish
+  2:  coral
+  3:  crab
+  4:  starfish
+  5:  sea_turtle
+  6:  seahorse
+  7:  octopus
+  8:  dolphin
+  9:  whale
+  10: shark
+  11: ray
+
+  # ── Ocean Trash (classes 12–14) — COLLECT ───────────────────────────────
+  12: plastic_bottle
+  13: plastic_bag
+  14: fishing_net
+
+  # Extend with: can, styrofoam, rope, glass_bottle, tire, metal_debris
+  # Keep marine life class IDs first so it's easy to slice the label space

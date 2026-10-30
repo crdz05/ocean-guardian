@@ -1,0 +1,7 @@
+__pycache__/
+*.pyc
+*.pt
+captures/
+capture_frame_*.jpg
+datasets/
+.venv/
